@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\SystemDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -104,6 +105,9 @@ Route::group(['middleware' => ['auth', 'activated', 'currentUser', 'activity', '
 
 // Registered, activated, and is admin routes.
 Route::group(['middleware' => ['auth', 'activated', 'role:admin', 'activity', 'twostep', 'checkblocked']], function () {
+    Route::get('/admin/system/metrics', [SystemDashboardController::class, 'metrics'])->name('admin.system.metrics');
+    Route::get('/admin/system/logs', [SystemDashboardController::class, 'logs'])->name('admin.system.logs');
+
     Route::resource('/users/deleted', \App\Http\Controllers\SoftDeletesController::class, [
         'only' => [
             'index', 'show', 'update', 'destroy',

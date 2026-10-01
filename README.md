@@ -107,8 +107,21 @@ Laravel 13 with user authentication, registration with email confirmation, socia
 
 ### Installation Instructions
 
+#### Run with Podman Compose
+
+Run the setup script from the project root:
+
+```
+./scripts/podman-dev.sh setup
+```
+
+This builds frontend assets, starts the app, MySQL, and phpMyAdmin, disables reCAPTCHA for local development, generates the application key if needed, migrates/seeds the database, and creates the storage link. The app is at `http://localhost:8000`; phpMyAdmin is at `http://localhost:8081` (server `mysql`, user `root`, password from `DB_PASSWORD`). Use `./scripts/podman-dev.sh down` to stop the services without deleting data; `podman compose down -v` also deletes the database and dependency volumes.
+
 1. Run `git clone https://github.com/jeremykenedy/laravel-auth.git laravel-auth`
-2. Create a MySQL database for the project
+2. Start MySQL for the host-PHP workflow with `podman compose up -d mysql`, or create one manually
+    - Set `DB_HOST=127.0.0.1` and `DB_PASSWORD=local-dev-password` in `.env` to use the Compose database. The Compose defaults use `laravel_auth` and port `3306`.
+    - Stop the database with `podman compose stop mysql`; `podman compose down -v` also deletes its data.
+    - To create a database manually:
     - `mysql -u root -p`, if using Vagrant: `mysql -u homestead -psecret`
     - `create database laravelAuth;`
     - `\q`

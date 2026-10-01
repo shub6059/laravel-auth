@@ -46,6 +46,12 @@ class Kernel extends HttpKernel
         'activated' => [
             CheckIsUserActivated::class,
         ],
+        'blockerAdmin' => [
+            'activated',
+            'role:admin',
+            'activity',
+            'twostep',
+        ],
     ];
 
     /**

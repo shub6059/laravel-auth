@@ -8,38 +8,95 @@ A step-by-step guide for setting up **Laravel Auth** on any standard LAMP/LEMP s
 
 | Requirement | Minimum Version |
 |---|---|
-| PHP | 8.2+ |
+| PHP | 8.3+ |
 | MySQL | 5.7+ / MariaDB 10.4+ |
 | Composer | 2.x |
 | Node.js + npm | 18.x+ |
+
+For the container setup, install Podman and a Compose provider available through `podman compose`.
 
 ---
 
 ## Quick Start
 
-### 1. Clone the Repository
+### Podman Compose (Automated)
+
+#### First setup on another Linux machine
+
+1. Install Podman and a Compose provider supported by `podman compose`. Confirm both commands work:
+
+```bash
+podman --version
+podman compose version
+```
+
+2. Clone the repository and enter its directory:
 
 ```bash
 git clone https://github.com/jeremykenedy/laravel-auth.git laravel-auth
 cd laravel-auth
 ```
 
-### 2. Install PHP Dependencies
+3. Optionally create `.env` and set custom ports or a database password before setup. If omitted, the script copies `.env.example` automatically:
+
+```bash
+cp .env.example .env
+```
+
+4. Run the automated setup:
+
+```bash
+./scripts/podman-dev.sh setup
+```
+
+The script builds frontend assets in a Node container, builds and starts Laravel, MySQL, and phpMyAdmin, generates a missing application key, runs migrations and seeds a fresh database, then creates the storage link. Host PHP, Composer, and Node.js are not required. The first run needs internet access to pull container images and install project dependencies.
+
+- App: `http://localhost:8000` (change `APP_PORT` in `.env` to use another port)
+- phpMyAdmin: `http://localhost:8081` (change `PHPMYADMIN_PORT` to use another port)
+- MySQL: `localhost:3306` (change `DB_PORT` if this port is already in use)
+- phpMyAdmin server: `mysql`
+- phpMyAdmin username: `root`
+- phpMyAdmin password: the value of `DB_PASSWORD` in `.env` (defaults to `local-dev-password`)
+
+Choose unused host ports before setup if another service is already using `8000`, `8081`, or `3306`. reCAPTCHA is disabled by this local development setup.
+
+#### Update or restart later
+
+After pulling code changes, run `./scripts/podman-dev.sh setup` again. It rebuilds assets, applies pending migrations, and preserves existing database contents; it skips seeders when users already exist.
+
+```bash
+./scripts/podman-dev.sh logs
+./scripts/podman-dev.sh artisan route:list
+./scripts/podman-dev.sh down
+```
+
+`down` stops the services but keeps database data. To permanently reset the local database and Composer dependency volumes, run `podman compose down -v`; this deletes the data. Setup is for local development; do not use seeded accounts or development credentials in production.
+
+### Manual Host Setup
+
+#### 1. Clone the Repository
+
+```bash
+git clone https://github.com/jeremykenedy/laravel-auth.git laravel-auth
+cd laravel-auth
+```
+
+#### 2. Install PHP Dependencies
 
 ```bash
 composer install
 ```
 
-### 3. Install Node Dependencies & Build Assets
+#### 3. Install Node Dependencies & Build Assets
 
 ```bash
 npm install
-npm run dev        # development build
-# or
-npm run build      # production build
+npm run build
 ```
 
-### 4. Configure Environment
+Use `npm run dev` to run Vite's development server instead of creating a build.
+
+#### 4. Configure Environment
 
 ```bash
 cp .env.example .env
@@ -62,11 +119,11 @@ DB_PASSWORD=               # leave empty if your local MySQL root user has no pa
 > **Tip:** For email verification during development, set `MAIL_MAILER=log`.  
 > Emails will be written to `storage/logs/laravel.log` instead of being sent.
 
-### 5. Create the Database
+#### 5. Create the Database
 
 Using your preferred MySQL client (phpMyAdmin, TablePlus, the `mysql` CLI, etc.), create a new database named `laravel_auth` (utf8mb4_unicode_ci collation).
 
-### 6. Run Migrations & Seed Data
+#### 6. Run Migrations & Seed Data
 
 ```bash
 php artisan migrate --seed
@@ -79,19 +136,19 @@ This creates all tables and seeds:
 - A demo admin user
 - Theme options
 
-### 7. Configure Storage Link
+#### 7. Configure Storage Link
 
 ```bash
 php artisan storage:link
 ```
 
-### 8. Set Folder Permissions (Linux/Mac only)
+#### 8. Set Folder Permissions (Linux/Mac only)
 
 ```bash
 chmod -R 775 storage bootstrap/cache
 ```
 
-### 9. Access the Application
+#### 9. Access the Application
 
 | Method | URL |
 |---|---|
