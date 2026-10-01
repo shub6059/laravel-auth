@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Permission;
 use Illuminate\Database\Seeder;
 
 class PermissionsTableSeeder extends Seeder
@@ -11,7 +12,7 @@ class PermissionsTableSeeder extends Seeder
      *
      * @return void
      */
-    public function run()
+    public function run(): void
     {
         /*
          * Permission Types
@@ -49,13 +50,13 @@ class PermissionsTableSeeder extends Seeder
          *
          */
         foreach ($Permissionitems as $Permissionitem) {
-            $newPermissionitem = config('roles.models.permission')::where('slug', '=', $Permissionitem['slug'])->first();
-            if ($newPermissionitem === null) {
-                $newPermissionitem = config('roles.models.permission')::create([
-                    'name'          => $Permissionitem['name'],
-                    'slug'          => $Permissionitem['slug'],
-                    'description'   => $Permissionitem['description'],
-                    'model'         => $Permissionitem['model'],
+            $newPermissionitem = Permission::where('slug', '=', $Permissionitem['slug'])->first();
+            if (null === $newPermissionitem) {
+                $newPermissionitem = Permission::create([
+                    'name'        => $Permissionitem['name'],
+                    'slug'        => $Permissionitem['slug'],
+                    'description' => $Permissionitem['description'],
+                    'model'       => $Permissionitem['model'],
                 ]);
             }
         }

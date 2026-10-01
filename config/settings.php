@@ -5,7 +5,7 @@ return [
     /*
      * Is email activation required
      */
-    'app_project_version' => env('APP_PROJECT_VERSION'),
+    'app_project_version' => env('APP_PROJECT_VERSION', 10),
 
     /*
      * Is email activation required
@@ -45,7 +45,7 @@ return [
     /*
      * User restore encryption key
      */
-    'restoreKey' => env('USER_RESTORE_ENCRYPTION_KEY', 'sup3rS3cr3tR35t0r3K3y21!'),
+    'restoreKey' => env('USER_RESTORE_ENCRYPTION_KEY'),
 
     /*
      * ReCaptcha Status
@@ -81,4 +81,9 @@ return [
      * Google Analytics
      */
     'googleanalyticsId' => env('GOOGLE_ANALYTICS_ID', false),
+
+    /*
+     * enable/disable HTTP Method column in admin's route details list
+     */
+    'showRouteHttpMethod' => env('SHOW_ROUTE_HTTP_METHOD', 1),
 ];

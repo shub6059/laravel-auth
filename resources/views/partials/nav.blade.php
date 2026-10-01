@@ -16,6 +16,10 @@
                             {!! trans('titles.adminDropdownNav') !!}
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item {{ Request::is('home') ? 'active' : null }}" href="{{ route('public.home') }}">
+                                <i class="fa fa-dashboard mr-1" aria-hidden="true"></i> System Dashboard
+                            </a>
+                            <div class="dropdown-divider"></div>
                             <a class="dropdown-item {{ (Request::is('roles') || Request::is('permissions')) ? 'active' : null }}" href="{{ route('laravelroles::roles.index') }}">
                                 {!! trans('titles.laravelroles') !!}
                             </a>
@@ -47,10 +51,12 @@
                             <a class="dropdown-item {{ Request::is('routes') ? 'active' : null }}" href="{{ url('/routes') }}">
                                 {!! trans('titles.adminRoutes') !!}
                             </a>
+                            {{--
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item {{ Request::is('active-users') ? 'active' : null }}" href="{{ url('/active-users') }}">
                                 {!! trans('titles.activeUsers') !!}
                             </a>
+                            --}}
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item {{ Request::is('blocker') ? 'active' : null }}" href="{{ route('laravelblocker::blocker.index') }}">
                                 {!! trans('titles.laravelBlocker') !!}
@@ -82,13 +88,11 @@
                                 {!! trans('titles.profile') !!}
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="{{ route('logout') }}"
-                               onclick="event.preventDefault();
-                                             document.getElementById('logout-form').submit();">
-                                {{ __('Logout') }}
-                            </a>
-                            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                            <form class="logout-form" action="{{ route('logout') }}" method="POST" style="margin:0;">
                                 @csrf
+                                <button type="submit" class="dropdown-item">
+                                    <i class="fa fa-sign-out-alt mr-1"></i>{{ __('Sign Out') }}
+                                </button>
                             </form>
                         </div>
                     </li>

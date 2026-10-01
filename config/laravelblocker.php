@@ -29,7 +29,7 @@ return [
     | Laravel Default User Model
     |--------------------------------------------------------------------------
     */
-    'defaultUserModel'              => env('LARAVEL_BLOCKER_USER_MODEL', 'App\User'),
+    'defaultUserModel'              => env('LARAVEL_BLOCKER_USER_MODEL', 'App\Models\User'),
 
     /*
     |--------------------------------------------------------------------------
@@ -88,7 +88,7 @@ return [
     'rolesEnabled'                  => env('LARAVEL_BLOCKER_ROLES_ENABLED', false),
 
     // Optional Roles Middleware
-    'rolesMiddlware'                => env('LARAVEL_BLOCKER_ROLES_MIDDLWARE', ['activated', 'role:admin', 'activity', 'twostep']), // Override in place here
+    'rolesMiddlware'                => env('LARAVEL_BLOCKER_ROLES_MIDDLWARE', 'blockerAdmin'),
 
     /*
     |--------------------------------------------------------------------------

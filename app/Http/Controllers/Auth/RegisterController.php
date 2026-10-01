@@ -4,14 +4,18 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Profile;
+use App\Models\Role;
 use App\Models\User;
 use App\Traits\ActivationTrait;
 use App\Traits\CaptchaTrait;
 use App\Traits\CaptureIpTrait;
 use Illuminate\Foundation\Auth\RegistersUsers;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use jeremykenedy\LaravelRoles\Models\Role;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
+use jeremykenedy\LaravelLogger\App\Http\Traits\ActivityLogger;
 
 class RegisterController extends Controller
 {
@@ -29,6 +33,7 @@ class RegisterController extends Controller
     use ActivationTrait;
     use CaptchaTrait;
     use RegistersUsers;
+    use ActivityLogger;
 
     /**
      * Where to redirect users after registration.
@@ -49,11 +54,25 @@ class RegisterController extends Controller
         ]);
     }
 
+    protected function registered(Request $request, User $user): void
+    {
+        $this->activity('User registered', 'New account registered.', [
+            'id' => $user->id,
+            'model' => User::class,
+        ]);
+    }
+
     /**
      * Get a validator for an incoming registration request.
      *
-     * @param array $data
+     * Enforces strong password policy:
+     *   - Minimum 8 characters
+     *   - At least one uppercase and one lowercase letter
+     *   - At least one number
+     *   - At least one symbol
+     *   - Cannot be a commonly-used password (uncompromised check)
      *
+     * @param  array  $data
      * @return \Illuminate\Contracts\Validation\Validator
      */
     protected function validator(array $data)
@@ -67,11 +86,19 @@ class RegisterController extends Controller
         return Validator::make(
             $data,
             [
-                'name'                  => 'required|max:255|unique:users|alpha_dash',
-                'first_name'            => 'alpha_dash',
-                'last_name'             => 'alpha_dash',
-                'email'                 => 'required|email|max:255|unique:users',
-                'password'              => 'required|min:6|max:30|confirmed',
+                'name'                  => 'required|string|max:255|unique:users|alpha_dash',
+                'first_name'            => 'nullable|string|max:255|alpha_dash',
+                'last_name'             => 'nullable|string|max:255|alpha_dash',
+                'email'                 => 'required|string|email:rfc|max:255|unique:users',
+                'password'              => [
+                    'required',
+                    'confirmed',
+                    Password::min(8)
+                        ->mixedCase()
+                        ->numbers()
+                        ->symbols()
+                        ->uncompromised(),
+                ],
                 'password_confirmation' => 'required|same:password',
                 'g-recaptcha-response'  => '',
                 'captcha'               => 'required|min:1',
@@ -79,13 +106,13 @@ class RegisterController extends Controller
             [
                 'name.unique'                   => trans('auth.userNameTaken'),
                 'name.required'                 => trans('auth.userNameRequired'),
-                'first_name.required'           => trans('auth.fNameRequired'),
-                'last_name.required'            => trans('auth.lNameRequired'),
+                'name.alpha_dash'               => __('Username may only contain letters, numbers, dashes, and underscores.'),
+                'first_name.alpha_dash'         => __('First name may only contain letters, numbers, dashes, and underscores.'),
+                'last_name.alpha_dash'          => __('Last name may only contain letters, numbers, dashes, and underscores.'),
                 'email.required'                => trans('auth.emailRequired'),
                 'email.email'                   => trans('auth.emailInvalid'),
+                'email.unique'                  => __('This email address is already registered. Please login or use a different email.'),
                 'password.required'             => trans('auth.passwordRequired'),
-                'password.min'                  => trans('auth.PasswordMin'),
-                'password.max'                  => trans('auth.PasswordMax'),
                 'g-recaptcha-response.required' => trans('auth.captchaRequire'),
                 'captcha.min'                   => trans('auth.CaptchaWrong'),
             ]
@@ -95,8 +122,7 @@ class RegisterController extends Controller
     /**
      * Create a new user instance after a valid registration.
      *
-     * @param array $data
-     *
+     * @param  array  $data
      * @return User
      */
     protected function create(array $data)
@@ -113,11 +139,11 @@ class RegisterController extends Controller
 
         $user = User::create([
             'name'              => strip_tags($data['name']),
-            'first_name'        => strip_tags($data['first_name']),
-            'last_name'         => strip_tags($data['last_name']),
-            'email'             => $data['email'],
+            'first_name'        => strip_tags($data['first_name'] ?? ''),
+            'last_name'         => strip_tags($data['last_name'] ?? ''),
+            'email'             => strtolower(trim($data['email'])),
             'password'          => Hash::make($data['password']),
-            'token'             => str_random(64),
+            'token'             => Str::random(64),
             'signup_ip_address' => $ipAddress->getClientIp(),
             'activated'         => $activated,
         ]);

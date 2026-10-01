@@ -6,75 +6,79 @@ use App\Mail\ExceptionOccured;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Support\Facades\Log;
-use Mail;
-use Response;
-use Symfony\Component\Debug\Exception\FlattenException;
-use Symfony\Component\Debug\ExceptionHandler as SymfonyExceptionHandler;
+use Illuminate\Support\Facades\Mail;
 use Throwable;
 
 class Handler extends ExceptionHandler
 {
     /**
-     * A list of the exception types that should not be reported.
+     * A list of exception types with their corresponding custom log levels.
      *
-     * @var array
+     * @var array<class-string<\Throwable>, \Psr\Log\LogLevel::*>
+     */
+    protected $levels = [
+        //
+    ];
+
+    /**
+     * A list of the exception types that are not reported.
+     *
+     * @var array<int, class-string<\Throwable>>
      */
     protected $dontReport = [
         //
     ];
 
     /**
-     * A list of the inputs that are never flashed for validation exceptions.
+     * A list of the inputs that are never flashed to the session on validation exceptions.
      *
-     * @var array
+     * @var array<int, string>
      */
     protected $dontFlash = [
+        'current_password',
         'password',
         'password_confirmation',
     ];
 
     /**
-     * Report or log an exception.
-     *
+     * Register the exception handling callbacks for the application.
      * This is a great spot to send exceptions to Sentry, Bugsnag, etc.
-     *
-     * @param \Throwable $exception
-     *
-     * @return void
      */
-    public function report(Throwable $exception)
+    public function register(): void
     {
-        $enableEmailExceptions = config('exceptions.emailExceptionEnabled');
+        $this->reportable(function (Throwable $e) {
+            $enableEmailExceptions = config('exceptions.emailExceptionEnabled');
 
-        if ($enableEmailExceptions === '') {
-            $enableEmailExceptions = config('exceptions.emailExceptionEnabledDefault');
-        }
+            if ($enableEmailExceptions === '') {
+                $enableEmailExceptions = config('exceptions.emailExceptionEnabledDefault');
+            }
 
-        if ($enableEmailExceptions && $this->shouldReport($exception)) {
-            $this->sendEmail($exception);
-        }
+            if ($enableEmailExceptions && $this->shouldReport($e)) {
+                $this->sendEmail($e);
+            }
 
-        parent::report($exception);
+            if (app()->bound('sentry') && config('services.sentry.enabled')) {
+                app('sentry')->captureException($e);
+            }
+        });
     }
 
     /**
      * Render an exception into an HTTP response.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param \Throwable               $exception
-     *
-     * @throws \Throwable
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Throwable  $e
+     * @return \Illuminate\Http\Response
      */
-    public function render($request, Throwable $exception)
+    public function render($request, Throwable $e)
     {
-        $userLevelCheck = $exception instanceof \jeremykenedy\LaravelRoles\App\Exceptions\RoleDeniedException ||
-            $exception instanceof \jeremykenedy\LaravelRoles\App\Exceptions\RoleDeniedException ||
-            $exception instanceof \jeremykenedy\LaravelRoles\App\Exceptions\PermissionDeniedException ||
-            $exception instanceof \jeremykenedy\LaravelRoles\App\Exceptions\LevelDeniedException;
+        $userLevelCheck = $e instanceof \jeremykenedy\LaravelRoles\App\Exceptions\RoleDeniedException ||
+            $e instanceof \jeremykenedy\LaravelRoles\App\Exceptions\PermissionDeniedException ||
+            $e instanceof \jeremykenedy\LaravelRoles\App\Exceptions\LevelDeniedException;
 
         if ($userLevelCheck) {
             if ($request->expectsJson()) {
-                return Response::json([
+                return response()->json([
                     'error'     => 403,
                     'message'   => 'Unauthorized.',
                 ], 403);
@@ -83,15 +87,14 @@ class Handler extends ExceptionHandler
             abort(403);
         }
 
-        return parent::render($request, $exception);
+        return parent::render($request, $e);
     }
 
     /**
      * Convert an authentication exception into an unauthenticated response.
      *
-     * @param \Illuminate\Http\Request                 $request
-     * @param \Illuminate\Auth\AuthenticationException $exception
-     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Illuminate\Auth\AuthenticationException  $exception
      * @return \Illuminate\Http\Response
      */
     protected function unauthenticated($request, AuthenticationException $exception)
@@ -106,18 +109,19 @@ class Handler extends ExceptionHandler
     /**
      * Sends an email upon exception.
      *
-     * @param \Throwable $exception
-     *
-     * @return void
+     * @param  \Throwable  $exception
      */
-    public function sendEmail(Throwable $exception)
+    public function sendEmail(Throwable $exception): void
     {
         try {
-            $e = FlattenException::create($exception);
-            $handler = new SymfonyExceptionHandler();
-            $html = $handler->getHtml($e);
-
-            Mail::send(new ExceptionOccured($html));
+            $content['message'] = $exception->getMessage();
+            $content['file'] = $exception->getFile();
+            $content['line'] = $exception->getLine();
+            $content['trace'] = $exception->getTrace();
+            $content['url'] = request()->url();
+            $content['body'] = request()->all();
+            $content['ip'] = request()->ip();
+            Mail::send(new ExceptionOccured($content));
         } catch (Throwable $exception) {
             Log::error($exception);
         }

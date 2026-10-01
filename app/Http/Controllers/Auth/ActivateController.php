@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Activation;
 use App\Models\Profile;
+use App\Models\Role;
 use App\Models\User;
 use App\Traits\ActivationTrait;
 use App\Traits\CaptureIpTrait;
@@ -12,7 +13,6 @@ use Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
-use jeremykenedy\LaravelRoles\Models\Role;
 
 class ActivateController extends Controller
 {
@@ -76,9 +76,8 @@ class ActivateController extends Controller
     /**
      * Redirect the user after activation with admin logic.
      *
-     * @param $user             The user
+     * @param  $user  The user
      * @param currentRoute      The current route
-     *
      * @return Redirect
      */
     public static function activeRedirect($user, $currentRoute)
@@ -175,8 +174,7 @@ class ActivateController extends Controller
     /**
      * Activate a valid user with a token.
      *
-     * @param string $token The token
-     *
+     * @param  string  $token  The token
      * @return Redirect
      */
     public function activate($token)

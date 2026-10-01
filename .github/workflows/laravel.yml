@@ -1,0 +1,65 @@
+name: Laravel
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  laravel-tests:
+    runs-on: ubuntu-latest
+
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: laravel_auth
+      DB_USERNAME: root
+      DB_PASSWORD: laravel-auth-ci
+      ENABLE_RECAPTCHA: "false"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ["8.3", "8.4"]
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: laravel-auth-ci
+          MYSQL_DATABASE: laravel_auth
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -plaravel-auth-ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: intl
+      - name: Copy .env
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+      - name: Install Dependencies
+        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+      - name: Generate key
+        run: php artisan key:generate
+      - name: Directory Permissions
+        run: chmod -R 777 storage bootstrap/cache
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+      - name: Install Node Dependencies
+        run: npm install
+      - name: Build Frontend Assets
+        run: npm run build
+      - name: Run Migrations
+        run: php artisan migrate --force
+      - name: Execute tests
+        run: php artisan test

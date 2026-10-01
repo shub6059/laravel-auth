@@ -21,9 +21,8 @@ class RestoreUserController extends ProfilesController
     /**
      * User Account Restore.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param string                   $token
-     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string  $token
      * @return \Illuminate\Http\Response
      */
     public function userReActivate(Request $request, $token)
@@ -31,7 +30,7 @@ class RestoreUserController extends ProfilesController
         $userKeys = new ProfilesController();
         $sepKey = $userKeys->getSeperationKey();
         $userIdKey = $userKeys->getIdMultiKey();
-        $restoreKey = config('settings.restoreKey');
+        $restoreKey = $userKeys->getRestoreKey();
         $encrypter = config('settings.restoreUserEncType');
         $level5 = base64_decode($token);
         $level4 = openssl_decrypt($level5, $encrypter, $restoreKey);

@@ -45,8 +45,8 @@ return [
     */
 
     'models' => [
-        'role'          => env('ROLES_DEFAULT_ROLE_MODEL', jeremykenedy\LaravelRoles\Models\Role::class),
-        'permission'    => env('ROLES_DEFAULT_PERMISSION_MODEL', jeremykenedy\LaravelRoles\Models\Permission::class),
+        'role'          => \App\Models\Role::class,
+        'permission'    => \App\Models\Permission::class,
         'defaultUser'   => env('ROLES_DEFAULT_USER_MODEL', config('auth.providers.users.model')),
     ],
 
@@ -113,11 +113,11 @@ return [
 
     // User Permissions or Role needed to create a new role
     'rolesGuiCreateNewRolesMiddlewareType'   => env('ROLES_GUI_CREATE_ROLE_MIDDLEWARE_TYPE', 'role'), //permissions or roles
-    'rolesGuiCreateNewRolesMiddleware'       => env('ROLES_GUI_CREATE_ROLE_MIDDLEWARE_TYPE', 'admin'), // admin, XXX. ... or perms.XXX
+    'rolesGuiCreateNewRolesMiddleware'       => env('ROLES_GUI_CREATE_ROLE_MIDDLEWARE', 'admin'), // admin, XXX. ... or perms.XXX
 
     // User Permissions or Role needed to create a new permission
     'rolesGuiCreateNewPermissionMiddlewareType'  => env('ROLES_GUI_CREATE_PERMISSION_MIDDLEWARE_TYPE', 'role'), //permissions or roles
-    'rolesGuiCreateNewPermissionsMiddleware'     => env('ROLES_GUI_CREATE_PERMISSION_MIDDLEWARE_TYPE', 'admin'), // admin, XXX. ... or perms.XXX
+    'rolesGuiCreateNewPermissionsMiddleware'     => env('ROLES_GUI_CREATE_PERMISSION_MIDDLEWARE', 'admin'), // admin, XXX. ... or perms.XXX
 
     // The parent blade file
     'bladeExtended'                 => env('ROLES_GUI_BLADE_EXTENDED', 'layouts.app'),
@@ -139,7 +139,7 @@ return [
     'bootstrapCardClasses'          => env('ROLES_GUI_CARD_CLASSES', ''),
 
     // Bootstrap Tooltips
-    'tooltipsEnabled'               => env('ROLES_GUI_TOOLTIPS_ENABLED', true),
+    'tooltipsEnabled'               => env('ROLES_GUI_TOOLTIPS_ENABLED', false),
 
     // jQuery
     'enablejQueryCDN'               => env('ROLES_GUI_JQUERY_CDN_ENABLED', true), // You may need to change this if you compile and include jquery
@@ -182,11 +182,11 @@ return [
 
     // User Permissions or Role needed to create a new role
     'rolesAPICreateNewRolesMiddlewareType'   => env('ROLES_API_CREATE_ROLE_MIDDLEWARE_TYPE', 'role'), //permissions or roles
-    'rolesAPICreateNewRolesMiddleware'       => env('ROLES_API_CREATE_ROLE_MIDDLEWARE_TYPE', 'admin'), // admin, XXX. ... or perms.XXX
+    'rolesAPICreateNewRolesMiddleware'       => env('ROLES_API_CREATE_ROLE_MIDDLEWARE', 'admin'), // admin, XXX. ... or perms.XXX
 
     // User Permissions or Role needed to create a new permission
     'rolesAPICreateNewPermissionMiddlewareType'  => env('ROLES_API_CREATE_PERMISSION_MIDDLEWARE_TYPE', 'role'), //permissions or roles
-    'rolesAPICreateNewPermissionsMiddleware'     => env('ROLES_API_CREATE_PERMISSION_MIDDLEWARE_TYPE', 'admin'), // admin, XXX. ... or perms.XXX
+    'rolesAPICreateNewPermissionsMiddleware'     => env('ROLES_API_CREATE_PERMISSION_MIDDLEWARE', 'admin'), // admin, XXX. ... or perms.XXX
 
     /*
     |--------------------------------------------------------------------------

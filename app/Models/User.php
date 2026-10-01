@@ -2,17 +2,18 @@
 
 namespace App\Models;
 
+use App\Notifications\ResetPasswordNotification;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use jeremykenedy\LaravelRoles\Traits\HasRoleAndPermission;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasRoleAndPermission;
-    use Notifiable;
-    use SoftDeletes;
+    use HasApiTokens, HasFactory, HasRoleAndPermission, Notifiable, SoftDeletes;
 
     /**
      * The database table used by the model.
@@ -47,17 +48,6 @@ class User extends Authenticatable
         'remember_token',
         'activated',
         'token',
-    ];
-
-    /**
-     * The attributes that should be mutated to dates.
-     *
-     * @var array
-     */
-    protected $dates = [
-        'created_at',
-        'updated_at',
-        'deleted_at',
     ];
 
     /**
@@ -100,7 +90,37 @@ class User extends Authenticatable
         'admin_ip_address'                  => 'string',
         'updated_ip_address'                => 'string',
         'deleted_ip_address'                => 'string',
+        'email_verified_at'                 => 'datetime',
+        'created_at'                        => 'datetime',
+        'updated_at'                        => 'datetime',
+        'deleted_at'                        => 'datetime',
     ];
+
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new ResetPasswordNotification($token));
+    }
+
+    /**
+     * Scope a query to only include active (activated) users.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('activated', true);
+    }
+
+    /**
+     * Get the user's full name.
+     *
+     * @return string
+     */
+    public function getFullNameAttribute(): string
+    {
+        return trim("{$this->first_name} {$this->last_name}") ?: $this->name;
+    }
 
     /**
      * Get the socials for the user.
@@ -130,7 +150,6 @@ class User extends Authenticatable
      * Check if a user has a profile.
      *
      * @param  string  $name
-     *
      * @return bool
      */
     public function hasProfile($name)
@@ -147,7 +166,7 @@ class User extends Authenticatable
     /**
      * Add/Attach a profile to a user.
      *
-     * @param  Profile $profile
+     * @param  Profile  $profile
      */
     public function assignProfile(Profile $profile)
     {
@@ -157,7 +176,7 @@ class User extends Authenticatable
     /**
      * Remove/Detach a profile to a user.
      *
-     * @param  Profile $profile
+     * @param  Profile  $profile
      */
     public function removeProfile(Profile $profile)
     {

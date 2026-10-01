@@ -1,0 +1,27 @@
+name: Deploy
+
+# Trigger the workflow on push and
+# pull request events on the released branch
+on:
+  push:
+    branches:
+      - released
+  pull_request_review:
+    types: [submitted]
+    branches:
+      - released
+
+jobs:
+  build:
+    if: github.event_name == 'push' || github.event.review.state == 'approved'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Deploy to server
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          port: ${{ secrets.PORT }}
+          key: ${{ secrets.SSHKEY }}
+          script: cd ${{ secrets.SPAPATH }} && bash .scripts/deploy.sh

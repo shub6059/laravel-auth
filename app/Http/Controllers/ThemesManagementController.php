@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Theme;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Validator;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Validator;
 
 class ThemesManagementController extends Controller
 {
@@ -22,11 +23,11 @@ class ThemesManagementController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function index()
     {
-        $users = User::all();
+        $users = User::with('profile')->get();
 
         $themes = Theme::orderBy('name', 'asc')->get();
 
@@ -36,7 +37,7 @@ class ThemesManagementController extends Controller
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function create()
     {
@@ -46,9 +47,7 @@ class ThemesManagementController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param \Illuminate\Http\Request $request
-     *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function store(Request $request)
     {
@@ -78,9 +77,7 @@ class ThemesManagementController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param Theme $theme
-     *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function show(Theme $theme)
     {
@@ -90,9 +87,7 @@ class ThemesManagementController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param Theme $theme
-     *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function edit(Theme $theme)
     {
@@ -102,10 +97,7 @@ class ThemesManagementController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param Theme                    $theme
-     *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function update(Request $request, Theme $theme)
     {
@@ -125,9 +117,7 @@ class ThemesManagementController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param Theme $theme
-     *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function destroy(Theme $theme)
     {
@@ -142,14 +132,9 @@ class ThemesManagementController extends Controller
         return back()->with('error', trans('themes.deleteSelfError'));
     }
 
-    /**
-     * @param Theme $theme
-     *
-     * @return array
-     */
     protected function getThemeData(Theme $theme): array
     {
-        $users = User::all();
+        $users = User::with('profile')->get();
         $themeUsers = [];
 
         foreach ($users as $user) {

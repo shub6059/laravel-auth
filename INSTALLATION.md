@@ -1,0 +1,308 @@
+# Laravel Auth — Installation Guide
+
+A step-by-step guide for setting up **Laravel Auth** on any standard LAMP/LEMP server or local development environment.
+
+---
+
+## Requirements
+
+| Requirement | Minimum Version |
+|---|---|
+| PHP | 8.3+ |
+| MySQL | 5.7+ / MariaDB 10.4+ |
+| Composer | 2.x |
+| Node.js + npm | 18.x+ |
+
+For the container setup, install Podman and a Compose provider available through `podman compose`.
+
+---
+
+## Quick Start
+
+### Podman Compose (Automated)
+
+#### First setup on another Linux machine
+
+1. Install Podman and a Compose provider supported by `podman compose`. Confirm both commands work:
+
+```bash
+podman --version
+podman compose version
+```
+
+2. Clone the repository and enter its directory:
+
+```bash
+git clone https://github.com/jeremykenedy/laravel-auth.git laravel-auth
+cd laravel-auth
+```
+
+3. Optionally create `.env` and set custom ports or a database password before setup. If omitted, the script copies `.env.example` automatically:
+
+```bash
+cp .env.example .env
+```
+
+4. Run the automated setup:
+
+```bash
+./scripts/podman-dev.sh setup
+```
+
+The script builds frontend assets in a Node container, builds and starts Laravel, MySQL, and phpMyAdmin, generates a missing application key, runs migrations and seeds a fresh database, then creates the storage link. Host PHP, Composer, and Node.js are not required. The first run needs internet access to pull container images and install project dependencies.
+
+- App: `http://localhost:8000` (change `APP_PORT` in `.env` to use another port)
+- phpMyAdmin: `http://localhost:8081` (change `PHPMYADMIN_PORT` to use another port)
+- MySQL: `localhost:3306` (change `DB_PORT` if this port is already in use)
+- phpMyAdmin server: `mysql`
+- phpMyAdmin username: `root`
+- phpMyAdmin password: the value of `DB_PASSWORD` in `.env` (defaults to `local-dev-password`)
+
+Choose unused host ports before setup if another service is already using `8000`, `8081`, or `3306`. reCAPTCHA is disabled by this local development setup.
+
+#### Update or restart later
+
+After pulling code changes, run `./scripts/podman-dev.sh setup` again. It rebuilds assets, applies pending migrations, and preserves existing database contents; it skips seeders when users already exist.
+
+```bash
+./scripts/podman-dev.sh logs
+./scripts/podman-dev.sh artisan route:list
+./scripts/podman-dev.sh down
+```
+
+`down` stops the services but keeps database data. To permanently reset the local database and Composer dependency volumes, run `podman compose down -v`; this deletes the data. Setup is for local development; do not use seeded accounts or development credentials in production.
+
+### Manual Host Setup
+
+#### 1. Clone the Repository
+
+```bash
+git clone https://github.com/jeremykenedy/laravel-auth.git laravel-auth
+cd laravel-auth
+```
+
+#### 2. Install PHP Dependencies
+
+```bash
+composer install
+```
+
+#### 3. Install Node Dependencies & Build Assets
+
+```bash
+npm install
+npm run build
+```
+
+Use `npm run dev` to run Vite's development server instead of creating a build.
+
+#### 4. Configure Environment
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+Edit `.env` and update these values:
+
+```dotenv
+APP_NAME="Laravel Auth"
+APP_URL=http://localhost:8000
+
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=laravel_auth
+DB_USERNAME=root
+DB_PASSWORD=               # leave empty if your local MySQL root user has no password
+```
+
+> **Tip:** For email verification during development, set `MAIL_MAILER=log`.  
+> Emails will be written to `storage/logs/laravel.log` instead of being sent.
+
+#### 5. Create the Database
+
+Using your preferred MySQL client (phpMyAdmin, TablePlus, the `mysql` CLI, etc.), create a new database named `laravel_auth` (utf8mb4_unicode_ci collation).
+
+#### 6. Run Migrations & Seed Data
+
+```bash
+php artisan migrate --seed
+```
+
+This creates all tables and seeds:
+
+- Default roles (admin, user, unverified)
+- Default permissions
+- A demo admin user
+- Theme options
+
+#### 7. Configure Storage Link
+
+```bash
+php artisan storage:link
+```
+
+#### 8. Set Folder Permissions (Linux/Mac only)
+
+```bash
+chmod -R 775 storage bootstrap/cache
+```
+
+#### 9. Access the Application
+
+| Method | URL |
+|---|---|
+| Artisan Dev Server | `php artisan serve` → `http://localhost:8000` |
+| Your own web server (Apache/Nginx) | Point the document root at `public/` |
+
+---
+
+## Default Login Credentials
+
+After seeding, you can login with:
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@user.com` | `password` |
+| User | `user@user.com` | `password` |
+| Unverified | `unverified@user.com` | `password` |
+
+> **Important:** Change these passwords immediately after first login.
+
+---
+
+## Key Features
+
+- ✅ Email registration with activation
+- ✅ Strong password policy (8+ chars, mixed case, number, symbol)
+- ✅ Forgot / Reset password
+- ✅ Remember Me
+- ✅ Logout with session invalidation + confirmation
+- ✅ Social authentication (Google, Facebook, Twitter, GitHub, etc.)
+- ✅ Two-step verification (enabled by default, see `LARAVEL_2STEP_ENABLED`)
+- ✅ Roles & Permissions system
+- ✅ User profile with avatar
+- ✅ Admin panel (user management, themes, logs)
+- ✅ IP address tracking
+- ✅ Laravel Blocker (block IPs / users)
+- ✅ reCAPTCHA support
+
+---
+
+## Environment Variables Reference
+
+### Core Settings
+
+```dotenv
+ACTIVATION=true                  # Require email activation
+ACTIVATION_LIMIT_TIME_PERIOD=24  # Hours before activation link expires
+ACTIVATION_LIMIT_MAX_ATTEMPTS=3  # Max activation attempts before lockout
+```
+
+### Two-Step Auth
+
+```dotenv
+LARAVEL_2STEP_ENABLED=true       # Two-step verification (defaults to true)
+```
+
+### Social Login (Socialite)
+
+Configure OAuth credentials from each platform's developer console:
+
+```dotenv
+GOOGLE_ID=your-google-client-id
+GOOGLE_SECRET=your-google-secret
+GOOGLE_REDIRECT=http://localhost:8000/social/handle/google
+
+GITHUB_ID=your-github-id
+GITHUB_SECRET=your-github-secret
+GITHUB_REDIRECT=http://localhost:8000/social/handle/github
+```
+
+### reCAPTCHA
+
+```dotenv
+ENABLE_RECAPTCHA=true
+RE_CAP_SITE=your-recaptcha-site-key
+RE_CAP_SECRET=your-recaptcha-secret-key
+```
+
+---
+
+## Useful Artisan Commands
+
+```bash
+# Clear all caches
+php artisan optimize:clear
+
+# View all registered routes
+php artisan route:list
+
+# Run tests
+php artisan test
+
+# Reset and re-seed database (⚠️ destroys data)
+php artisan migrate:fresh --seed
+```
+
+---
+
+## Password Policy
+
+Passwords must meet **all** of the following requirements:
+
+- Minimum **8 characters**
+- At least one **uppercase** letter (A–Z)
+- At least one **lowercase** letter (a–z)
+- At least one **number** (0–9)
+- At least one **symbol** (e.g., `!@#$%`)
+- Must not be a [known breached password](https://haveibeenpwned.com/Passwords)
+
+---
+
+## Troubleshooting
+
+**"Class not found" errors**  
+```bash
+composer dump-autoload
+```
+
+**"No application encryption key" error**  
+```bash
+php artisan key:generate
+```
+
+**Blank page / 500 error**  
+Check `storage/logs/laravel.log` for details and ensure `APP_DEBUG=true` in `.env`.
+
+**Assets not loading**  
+```bash
+npm run build
+```
+
+**Session/cookie issues**  
+Ensure `APP_URL` in `.env` exactly matches the URL you're visiting.
+
+---
+
+## Security Hardening for Production
+
+Before deploying:
+
+```dotenv
+APP_ENV=production
+APP_DEBUG=false
+```
+
+```bash
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan optimize
+```
+
+---
+
+## License
+
+MIT License — see [LICENSE](LICENSE) file for details.
