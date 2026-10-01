@@ -10,6 +10,15 @@ jobs:
   laravel-tests:
     runs-on: ubuntu-latest
 
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: laravel_auth
+      DB_USERNAME: root
+      DB_PASSWORD: laravel-auth-ci
+      ENABLE_RECAPTCHA: "false"
+
     strategy:
       fail-fast: false
       matrix:
@@ -19,12 +28,12 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_ROOT_PASSWORD: laravel-auth-ci
           MYSQL_DATABASE: laravel_auth
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping"
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -plaravel-auth-ci"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
