@@ -10,10 +10,12 @@ use App\Traits\ActivationTrait;
 use App\Traits\CaptchaTrait;
 use App\Traits\CaptureIpTrait;
 use Illuminate\Foundation\Auth\RegistersUsers;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use jeremykenedy\LaravelLogger\App\Http\Traits\ActivityLogger;
 
 class RegisterController extends Controller
 {
@@ -31,6 +33,7 @@ class RegisterController extends Controller
     use ActivationTrait;
     use CaptchaTrait;
     use RegistersUsers;
+    use ActivityLogger;
 
     /**
      * Where to redirect users after registration.
@@ -48,6 +51,14 @@ class RegisterController extends Controller
     {
         $this->middleware('guest', [
             'except' => 'logout',
+        ]);
+    }
+
+    protected function registered(Request $request, User $user): void
+    {
+        $this->activity('User registered', 'New account registered.', [
+            'id' => $user->id,
+            'model' => User::class,
         ]);
     }
 

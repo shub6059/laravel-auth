@@ -62,6 +62,21 @@
     .system-detail-row { align-items: flex-start; border-top: 1px solid #edf1ec; display: flex; gap: 16px; justify-content: space-between; padding: 12px 0; }
     .system-detail-row span { color: var(--muted); font-size: 12px; }
     .system-detail-row strong { font-size: 12px; font-weight: 700; max-width: 65%; text-align: right; overflow-wrap: anywhere; }
+    .activity-panel { background: #fff; border: 1px solid var(--line); border-radius: 6px; margin: 16px auto 0; max-width: 1320px; overflow: hidden; }
+    .activity-head { align-items: center; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; padding: 16px 18px; }
+    .activity-title { font-size: 15px; font-weight: 750; margin: 0; }
+    .activity-controls { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; }
+    .activity-filter { background: #fff; border: 1px solid var(--line); border-radius: 4px; color: var(--ink); font-size: 12px; min-height: 34px; padding: 5px 9px; }
+    .activity-full-link { color: var(--teal); font-size: 12px; font-weight: 750; }
+    .activity-list { max-height: 390px; overflow: auto; }
+    .activity-row { align-items: flex-start; border-bottom: 1px solid #edf1ec; display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr) auto; padding: 14px 18px; }
+    .activity-row:last-child { border-bottom: 0; }
+    .activity-main { min-width: 0; }
+    .activity-description { font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+    .activity-meta { color: var(--muted); font-size: 11px; margin-top: 5px; overflow-wrap: anywhere; }
+    .activity-time { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .activity-type { background: #edf5e1; border-radius: 3px; color: #42621f; display: inline-block; font-size: 10px; font-weight: 800; margin-right: 7px; padding: 3px 6px; text-transform: uppercase; }
+    .activity-type.registration { background: #e0f2ef; color: #17665e; }
     @media (max-width: 900px) {
         .system-identity { grid-template-columns: auto minmax(0, 1fr) repeat(2, minmax(90px, .4fr)); }
         .system-identity .system-id-meta:last-child { grid-column: 2 / -1; }
@@ -78,11 +93,13 @@
         .system-metrics { grid-template-columns: 1fr; }
         .metric-panel { min-height: 164px; }
         .system-actions { justify-content: space-between; width: 100%; }
+        .activity-row { gap: 6px; grid-template-columns: 1fr; }
+        .activity-controls { align-items: flex-start; flex-direction: column; }
     }
 @endsection
 
 @section('content')
-    <div class="container-fluid system-dashboard" data-metrics-url="{{ route('admin.system.metrics') }}" data-logs-url="{{ route('admin.system.logs') }}">
+    <div class="container-fluid system-dashboard" data-metrics-url="{{ route('admin.system.metrics') }}" data-logs-url="{{ route('admin.system.logs') }}" data-activities-url="{{ route('admin.system.activities') }}">
         <header class="system-heading">
             <div>
                 <p class="system-eyebrow">Operations / Admin</p>
@@ -159,6 +176,26 @@
                 <div class="system-detail-row"><span>Last updated</span><strong id="detail-updated">--</strong></div>
             </aside>
         </section>
+
+        <section class="activity-panel" aria-label="Recent user activity">
+            <header class="activity-head">
+                <div>
+                    <h2 class="activity-title">Recent activity</h2>
+                    <span class="system-log-meta" id="activity-updated">Loading activity...</span>
+                </div>
+                <div class="activity-controls">
+                    <label class="sr-only" for="activity-filter">Filter activity</label>
+                    <select class="activity-filter" id="activity-filter">
+                        <option value="all">All activity</option>
+                        <option value="registration">Registrations</option>
+                    </select>
+                    <a class="activity-full-link" href="{{ url('/activity') }}">Full activity log <i class="fa fa-arrow-right" aria-hidden="true"></i></a>
+                </div>
+            </header>
+            <div class="activity-list" id="system-activity-list" role="log" aria-live="polite" aria-relevant="additions text">
+                <div class="system-log-empty">Loading recent activity...</div>
+            </div>
+        </section>
     </div>
 @endsection
 
@@ -170,8 +207,12 @@
 
             var metricsUrl = dashboard.dataset.metricsUrl;
             var logsUrl = dashboard.dataset.logsUrl;
+            var activitiesUrl = dashboard.dataset.activitiesUrl;
             var logContainer = document.getElementById('system-log-lines');
+            var activityContainer = document.getElementById('system-activity-list');
+            var activityFilter = document.getElementById('activity-filter');
             var lastLogContent = '';
+            var lastActivityContent = '';
             var requestPending = false;
 
             function setText(id, value) {
@@ -267,15 +308,74 @@
                 }
             }
 
+            async function refreshActivities() {
+                try {
+                    var response = await fetch(activitiesUrl, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+                    if (!response.ok) throw new Error('Activity unavailable');
+                    var data = await response.json();
+                    lastActivityContent = JSON.stringify(data.activities);
+                    renderActivities(data.activities);
+                    setText('activity-updated', 'Updated ' + new Date(data.updated_at).toLocaleTimeString());
+                } catch (error) {
+                    setText('activity-updated', 'Activity stream unavailable');
+                }
+            }
+
+            function renderActivities(activities) {
+                var filtered = activityFilter.value === 'all'
+                    ? activities
+                    : activities.filter(function (activity) { return activity.type === activityFilter.value; });
+                activityContainer.replaceChildren();
+
+                if (filtered.length === 0) {
+                    var empty = document.createElement('div');
+                    empty.className = 'system-log-empty';
+                    empty.textContent = activityFilter.value === 'registration' ? 'No registration events yet.' : 'No activity recorded yet.';
+                    activityContainer.appendChild(empty);
+                    return;
+                }
+
+                filtered.forEach(function (activity) {
+                    var row = document.createElement('article');
+                    row.className = 'activity-row';
+                    var main = document.createElement('div');
+                    main.className = 'activity-main';
+                    var description = document.createElement('div');
+                    description.className = 'activity-description';
+                    var type = document.createElement('span');
+                    type.className = 'activity-type' + (activity.type === 'registration' ? ' registration' : '');
+                    type.textContent = activity.type === 'registration' ? 'Registered' : (activity.method || 'Activity');
+                    description.appendChild(type);
+                    description.appendChild(document.createTextNode(activity.description));
+                    var meta = document.createElement('div');
+                    meta.className = 'activity-meta';
+                    meta.textContent = activity.actor + (activity.route ? ' · ' + activity.route : '');
+                    main.appendChild(description);
+                    main.appendChild(meta);
+                    var time = document.createElement('time');
+                    time.className = 'activity-time';
+                    time.dateTime = activity.created_at || '';
+                    time.textContent = activity.created_at ? new Date(activity.created_at).toLocaleString() : '';
+                    row.appendChild(main);
+                    row.appendChild(time);
+                    activityContainer.appendChild(row);
+                });
+            }
+
             function refreshAll() {
                 refreshMetrics();
                 refreshLogs();
+                refreshActivities();
             }
 
             document.getElementById('system-refresh').addEventListener('click', refreshAll);
+            activityFilter.addEventListener('change', function () {
+                if (lastActivityContent) renderActivities(JSON.parse(lastActivityContent));
+            });
             refreshAll();
             window.setInterval(refreshMetrics, 5000);
             window.setInterval(refreshLogs, 2500);
+            window.setInterval(refreshActivities, 5000);
         })();
     </script>
 @endsection

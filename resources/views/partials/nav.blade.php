@@ -16,6 +16,10 @@
                             {!! trans('titles.adminDropdownNav') !!}
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item {{ Request::is('home') ? 'active' : null }}" href="{{ route('public.home') }}">
+                                <i class="fa fa-dashboard mr-1" aria-hidden="true"></i> System Dashboard
+                            </a>
+                            <div class="dropdown-divider"></div>
                             <a class="dropdown-item {{ (Request::is('roles') || Request::is('permissions')) ? 'active' : null }}" href="{{ route('laravelroles::roles.index') }}">
                                 {!! trans('titles.laravelroles') !!}
                             </a>

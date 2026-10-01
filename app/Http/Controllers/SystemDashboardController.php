@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
+use jeremykenedy\LaravelLogger\App\Models\Activity;
 
 class SystemDashboardController extends Controller
 {
@@ -69,6 +71,36 @@ class SystemDashboardController extends Controller
 
         return response()->json([
             'lines' => $lines,
+            'updated_at' => now()->toIso8601String(),
+        ])->header('Cache-Control', 'no-store');
+    }
+
+    public function activities(): JsonResponse
+    {
+        $activities = Activity::query()
+            ->latest('created_at')
+            ->limit(50)
+            ->get(['id', 'description', 'userType', 'userId', 'route', 'methodType', 'created_at']);
+        $users = User::query()
+            ->whereIn('id', $activities->pluck('userId')->filter()->unique())
+            ->get(['id', 'name'])
+            ->keyBy('id');
+
+        return response()->json([
+            'activities' => $activities->map(function (Activity $activity) use ($users) {
+                $description = (string) $activity->description;
+                $route = parse_url((string) $activity->route, PHP_URL_PATH);
+
+                return [
+                    'id' => (int) $activity->id,
+                    'description' => mb_substr($description, 0, 180),
+                    'actor' => $users->get($activity->userId)?->name ?? $activity->userType ?? 'System',
+                    'route' => is_string($route) ? mb_substr($route, 0, 180) : '',
+                    'method' => strtoupper((string) $activity->methodType),
+                    'type' => str_contains(strtolower($description), 'register') ? 'registration' : 'activity',
+                    'created_at' => $activity->created_at?->toIso8601String(),
+                ];
+            })->values(),
             'updated_at' => now()->toIso8601String(),
         ])->header('Cache-Control', 'no-store');
     }

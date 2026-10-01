@@ -106,7 +106,8 @@ Route::group(['middleware' => ['auth', 'activated', 'currentUser', 'activity', '
 // Registered, activated, and is admin routes.
 Route::group(['middleware' => ['auth', 'activated', 'role:admin', 'activity', 'twostep', 'checkblocked']], function () {
     Route::get('/admin/system/metrics', [SystemDashboardController::class, 'metrics'])->name('admin.system.metrics');
-    Route::get('/admin/system/logs', [SystemDashboardController::class, 'logs'])->name('admin.system.logs');
+    Route::get('/admin/system/logs', [SystemDashboardController::class, 'logs'])->name('admin.system.logs')->withoutMiddleware('activity');
+    Route::get('/admin/system/activities', [SystemDashboardController::class, 'activities'])->name('admin.system.activities')->withoutMiddleware('activity');
 
     Route::resource('/users/deleted', \App\Http\Controllers\SoftDeletesController::class, [
         'only' => [
